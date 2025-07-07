@@ -1,10 +1,24 @@
-# utils/grammar_check.py
-import language_tool_python
+import requests
 
-# Automatically starts local server if not already running
-tool = language_tool_python.LanguageTool('en-US')
+def correct_grammar(text, lang="en-US"):
+    try:
+        url = "https://api.languagetool.org/v2/check"
+        data = {
+            "text": text,
+            "language": lang
+        }
+        response = requests.post(url, data=data)
+        result = response.json()
 
-def correct_grammar(text):
-    matches = tool.check(text)
-    corrected = language_tool_python.utils.correct(text, matches)
-    return corrected
+        corrected = text
+        for match in reversed(result["matches"]):
+            start = match["offset"]
+            end = start + match["length"]
+            replacements = match.get("replacements", [])
+            if replacements:
+                replacement = replacements[0]["value"]
+                corrected = corrected[:start] + replacement + corrected[end:]
+        return corrected
+    except Exception as e:
+        return f"Grammar Correction Error: {str(e)}"
+
